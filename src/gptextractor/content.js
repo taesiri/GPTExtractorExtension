@@ -30,28 +30,31 @@ const parseDOMToJSON = async () => {
 
 
     // Function to extract message content
-    const extractMessageContent = (message) => {
+    const extractMessageContent = async (message) => {
         const textContent = Array.from(message.querySelectorAll("p, li, div")).map(element => element.textContent).join(" ");
-        const messageImages = Array.from(message.querySelectorAll("img")).map(img => ({
-            alt: img.alt,
-            src: img.src,
-            width: img.width,
-            height: img.height
-        }));
+
+        const messageImages = await Promise.all(
+            Array.from(message.querySelectorAll("img")).map(async (img) => ({
+                alt: img.alt,
+                src: await toBase64(img.src),  // Convert each image src to Base64
+                width: img.width,
+                height: img.height
+            }))
+        );
 
         return { textContent, messageImages };
     };
 
-
     // Extract messages
-    const messages = Array.from(document.querySelectorAll("div[data-message-id]")).map(message => ({
-        authorRole: message.getAttribute("data-message-author-role"),
-        messageId: message.getAttribute("data-message-id"),
-        content: extractMessageContent(message)
-    }));
+    const messages = await Promise.all(
+        Array.from(document.querySelectorAll("div[data-message-id]")).map(async (message) => ({
+            authorRole: message.getAttribute("data-message-author-role"),
+            messageId: message.getAttribute("data-message-id"),
+            content: await extractMessageContent(message)  // Await the async function
+        }))
+    );
 
     return {
-        images,
         messages,
         rawHTML: document.documentElement.outerHTML
     };
